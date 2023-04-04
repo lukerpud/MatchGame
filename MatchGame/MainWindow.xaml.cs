@@ -15,16 +15,33 @@ using System.Windows.Shapes;
 
 namespace MatchGame
 {
+    using System.Windows.Threading;
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
     public partial class MainWindow : Window
     {
+        DispatcherTimer timer = new DispatcherTimer();
+        int tenthsOfSecondsElapsed;
+        int matchesFound;
+
         public MainWindow()
         {
             InitializeComponent();
-
+            timer.Interval = TimeSpan.FromSeconds(.1);
+            timer.Tick += Timer_Tick;
             SetUpGame();
+        }
+
+        private void Timer_Tick(object? sender, EventArgs e)
+        {
+            tenthsOfSecondsElapsed++;
+            timeTextBlock.Text = (tenthsOfSecondsElapsed / 10F).ToString("0.0s");
+            if (matchesFound == 8)
+            {
+                timer.Stop();
+                timeTextBlock.Text = timeTextBlock.Text + " - Play Again?";
+            }
         }
 
         private void SetUpGame()
@@ -42,12 +59,57 @@ namespace MatchGame
             };
             Random random = new Random();
 
-            foreach (TextBlock testBlock in mainGrid.Children.OfType<TextBlock>())
+            foreach (TextBlock textBlock in mainGrid.Children.OfType<TextBlock>())
             {
-                int i = random.Next(animalEmoji.Count);
-                string nextEmoji = animalEmoji[i];
-                testBlock.Text = nextEmoji;
-                animalEmoji.RemoveAt(i);
+                if (textBlock.Name != "timeTextBlock")
+                {
+                    textBlock.Visibility = Visibility.Visible;
+                    int i = random.Next(animalEmoji.Count);
+                    string nextEmoji = animalEmoji[i];
+                    textBlock.Text = nextEmoji;
+                    animalEmoji.RemoveAt(i);
+                }
+            }
+            timer.Start();
+            tenthsOfSecondsElapsed = 0;
+            matchesFound = 0;
+        }
+
+        TextBlock lastTextBlockClicked;
+        bool findingmatch = false;
+        private void TextBlock_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            TextBlock textBlock = sender as TextBlock;
+            if(findingmatch == false)
+            {
+                textBlock.Visibility = Visibility.Hidden;
+                lastTextBlockClicked = textBlock;
+                findingmatch = true;
+            }
+            else if(textBlock.Text == lastTextBlockClicked.Text)
+            {
+                matchesFound++;
+                textBlock.Visibility = Visibility.Hidden;
+                findingmatch = false;
+            }
+            else if(textBlock.Text != lastTextBlockClicked.Text)
+            { 
+                lastTextBlockClicked.Visibility = Visibility.Visible;
+                lastTextBlockClicked = null;
+                findingmatch = false;
+            }
+            else
+            {
+                lastTextBlockClicked.Visibility = Visibility.Visible;
+                findingmatch = true;
+            }
+        }
+
+        private void TimeTextBlock_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if(matchesFound == 8)
+            {
+                SetUpGame();
             }
         }
     }
